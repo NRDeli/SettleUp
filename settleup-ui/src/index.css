@@ -1,0 +1,38 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-url: url('https://images.unsplash.com/photo-1517816743773-6e0fd518b4a6?q=80&w=2070&auto=format&fit=crop');
+}
+
+body {
+  background-image: var(--bg-url);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.backdrop {
+  @apply bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6;
+  transition: transform 250ms ease, box-shadow 250ms ease;
+}
+
+.backdrop:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 35px rgba(0,0,0,0.15);
+}
+
+.btn {
+  @apply px-4 py-2 rounded-xl font-medium border border-black/10;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.btn:hover { transform: translateY(-1px); }
+.input { @apply border rounded-lg px-3 py-2 w-full; }
+.label { @apply text-sm font-semibold text-gray-700; }
+.card { @apply backdrop mb-6; }
+h1.title { @apply text-3xl font-bold mb-4; }
+h2.subtitle { @apply text-xl font-semibold mb-3; }
+nav a.active { @apply underline; }

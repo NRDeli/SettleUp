@@ -1,0 +1,14 @@
+org/ncsu/settleup/membershipservice/repo/MemberRepository.class
+org/ncsu/settleup/membershipservice/MembershipServiceApplication.class
+org/ncsu/settleup/membershipservice/controller/MembershipController.class
+org/ncsu/settleup/membershipservice/controller/MembershipController$GroupUpdateRequest.class
+org/ncsu/settleup/membershipservice/model/CategoryEntity.class
+org/ncsu/settleup/membershipservice/model/MemberEntity.class
+org/ncsu/settleup/membershipservice/controller/MembershipController$MemberCreateRequest.class
+org/ncsu/settleup/membershipservice/controller/MembershipController$MemberUpdateRequest.class
+org/ncsu/settleup/membershipservice/controller/MembershipController$GroupCreateRequest.class
+org/ncsu/settleup/membershipservice/controller/MembershipController$CategoryUpdateRequest.class
+org/ncsu/settleup/membershipservice/repo/CategoryRepository.class
+org/ncsu/settleup/membershipservice/repo/GroupRepository.class
+org/ncsu/settleup/membershipservice/controller/MembershipController$CategoryCreateRequest.class
+org/ncsu/settleup/membershipservice/model/GroupEntity.class

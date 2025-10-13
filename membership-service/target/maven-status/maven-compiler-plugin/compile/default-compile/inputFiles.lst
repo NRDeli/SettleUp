@@ -1,0 +1,8 @@
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/membership-service/src/main/java/org/ncsu/settleup/membershipservice/MembershipServiceApplication.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/membership-service/src/main/java/org/ncsu/settleup/membershipservice/controller/MembershipController.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/membership-service/src/main/java/org/ncsu/settleup/membershipservice/model/CategoryEntity.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/membership-service/src/main/java/org/ncsu/settleup/membershipservice/model/GroupEntity.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/membership-service/src/main/java/org/ncsu/settleup/membershipservice/model/MemberEntity.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/membership-service/src/main/java/org/ncsu/settleup/membershipservice/repo/CategoryRepository.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/membership-service/src/main/java/org/ncsu/settleup/membershipservice/repo/GroupRepository.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/membership-service/src/main/java/org/ncsu/settleup/membershipservice/repo/MemberRepository.java

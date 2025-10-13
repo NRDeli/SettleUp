@@ -1,0 +1,4 @@
+org/ncsu/settleup/common/dto/SettlementPlan.class
+org/ncsu/settleup/common/dto/SettlementPlan$TransferDto.class
+org/ncsu/settleup/common/dto/SettlementComputeRequest.class
+org/ncsu/settleup/common/events/ExpenseRecordedEvent.class

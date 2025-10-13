@@ -1,0 +1,106 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: settleup-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-settleup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-settleup}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - settleup_pgdata:/var/lib/postgresql/data
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: settleup-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  membership-service:
+    build:
+      context: ./membership-service    # adjust if your folder name differs
+    image: membership-service:latest
+    container_name: membership-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-postgres}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-settleup}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-settleup}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-guest}
+      # If your app uses Flyway/liquibase/other envs, add them here.
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - rabbitmq
+
+  expense-service:
+    build:
+      context: ./expense-service
+    image: expense-service:latest
+    container_name: expense-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-postgres}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-settleup}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-settleup}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-guest}
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - membership-service   # if you call membership APIs
+
+  settlement-service:
+    build:
+      context: ./settlement-service
+    image: settlement-service:latest
+    container_name: settlement-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-postgres}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-settleup}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-settleup}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-guest}
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - expense-service      # if it consumes expense events
+
+  ui:
+    build:
+      context: ./settleup-ui
+    image: settleup-ui:latest
+    container_name: settleup-ui
+    ports:
+      - "5173:80"   # UI at http://localhost:5173
+    depends_on:
+      - membership-service
+      - expense-service
+      - settlement-service
+
+volumes:
+  settleup_pgdata:
+    driver: local
