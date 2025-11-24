@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SettlementService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SettleUp Settlement Service</a> &gt; <a href="index.source.html" class="el_package">org.ncsu.settleup.settlementservice.service</a> &gt; <span class="el_source">SettlementService.java</span></div><h1>SettlementService.java</h1><pre class="source lang-java linenums">package org.ncsu.settleup.settlementservice.service;
+
+import org.ncsu.settleup.common.dto.SettlementPlan;
+import org.ncsu.settleup.common.events.ExpenseRecordedEvent;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Maintains per-group balances based on expense events and computes
+ * settlement plans.  The balances are held in-memory; if the service
+ * restarts, you may need to recompute balances from persisted
+ * expenses.  In a production system, this state would be stored
+ * durably.
+ */
+@Service
+<span class="fc" id="L24">public class SettlementService {</span>
+    // groupId -&gt; (memberId -&gt; net balance)
+<span class="fc" id="L26">    private final Map&lt;Long, Map&lt;Long, BigDecimal&gt;&gt; groupBalances = new ConcurrentHashMap&lt;&gt;();</span>
+
+    /**
+     * Handle an expense recorded event by updating the net balances.
+     * The payer's balance increases by the total amount of the expense;
+     * each participant's balance decreases by their share.
+     */
+    @RabbitListener(queues = &quot;settlement.expense.recorded.queue&quot;)
+    public void handleExpenseRecorded(ExpenseRecordedEvent event) {
+<span class="fc" id="L35">        Map&lt;Long, BigDecimal&gt; balances = groupBalances.computeIfAbsent(event.groupId(), k -&gt; new ConcurrentHashMap&lt;&gt;());</span>
+
+        // Compute total of shares
+<span class="fc" id="L38">        BigDecimal total = BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        for (BigDecimal share : event.shares().values()) {</span>
+<span class="fc" id="L40">            total = total.add(share);</span>
+<span class="fc" id="L41">        }</span>
+        // Payer gets credit for paying the total
+<span class="fc" id="L43">        balances.merge(event.payerMemberId(), total, BigDecimal::add);</span>
+        // Each member owes their share
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        for (Map.Entry&lt;Long, BigDecimal&gt; entry : event.shares().entrySet()) {</span>
+<span class="fc" id="L46">            Long memberId = entry.getKey();</span>
+<span class="fc" id="L47">            BigDecimal amount = entry.getValue();</span>
+<span class="fc" id="L48">            balances.merge(memberId, amount.negate(), BigDecimal::add);</span>
+<span class="fc" id="L49">        }</span>
+<span class="fc" id="L50">    }</span>
+
+    /**
+     * Compute a settlement plan by pairing debtors and creditors.  This
+     * implementation uses a greedy algorithm: sort creditors (positive
+     * balances) and debtors (negative balances) and settle the
+     * largest debts first.
+     *
+     * @param groupId the group whose balances should be settled
+     * @return a plan consisting of transfers to settle all balances
+     */
+    public SettlementPlan computeSettlement(Long groupId) {
+<span class="fc" id="L62">        Map&lt;Long, BigDecimal&gt; balances = groupBalances.getOrDefault(groupId, Map.of());</span>
+        // Separate creditors and debtors
+<span class="fc" id="L64">        List&lt;Map.Entry&lt;Long, BigDecimal&gt;&gt; creditors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L65">        List&lt;Map.Entry&lt;Long, BigDecimal&gt;&gt; debtors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        for (Map.Entry&lt;Long, BigDecimal&gt; entry : balances.entrySet()) {</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">            if (entry.getValue().compareTo(BigDecimal.ZERO) &gt; 0) {</span>
+<span class="fc" id="L68">                creditors.add(Map.entry(entry.getKey(), entry.getValue()));</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            } else if (entry.getValue().compareTo(BigDecimal.ZERO) &lt; 0) {</span>
+<span class="fc" id="L70">                debtors.add(Map.entry(entry.getKey(), entry.getValue().negate()));</span>
+            }
+<span class="fc" id="L72">        }</span>
+        // Sort by balance descending
+<span class="fc" id="L74">        creditors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));</span>
+<span class="fc" id="L75">        debtors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));</span>
+<span class="fc" id="L76">        List&lt;SettlementPlan.TransferDto&gt; transfers = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L77">        int i = 0, j = 0;</span>
+<span class="fc bfc" id="L78" title="All 4 branches covered.">        while (i &lt; debtors.size() &amp;&amp; j &lt; creditors.size()) {</span>
+<span class="fc" id="L79">            Map.Entry&lt;Long, BigDecimal&gt; debtor = debtors.get(i);</span>
+<span class="fc" id="L80">            Map.Entry&lt;Long, BigDecimal&gt; creditor = creditors.get(j);</span>
+<span class="fc" id="L81">            BigDecimal debt = debtor.getValue();</span>
+<span class="fc" id="L82">            BigDecimal credit = creditor.getValue();</span>
+<span class="fc" id="L83">            BigDecimal amount = debt.min(credit);</span>
+<span class="fc" id="L84">            transfers.add(new SettlementPlan.TransferDto(debtor.getKey(), creditor.getKey(), amount));</span>
+            // update remaining amounts
+<span class="fc" id="L86">            BigDecimal newDebt = debt.subtract(amount);</span>
+<span class="fc" id="L87">            BigDecimal newCredit = credit.subtract(amount);</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            if (newDebt.compareTo(BigDecimal.ZERO) == 0) {</span>
+<span class="fc" id="L89">                i++;</span>
+            } else {
+<span class="fc" id="L91">                debtors.set(i, Map.entry(debtor.getKey(), newDebt));</span>
+            }
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            if (newCredit.compareTo(BigDecimal.ZERO) == 0) {</span>
+<span class="fc" id="L94">                j++;</span>
+            } else {
+<span class="fc" id="L96">                creditors.set(j, Map.entry(creditor.getKey(), newCredit));</span>
+            }
+<span class="fc" id="L98">        }</span>
+<span class="fc" id="L99">        return new SettlementPlan(transfers);</span>
+    }
+
+    /**
+     * Apply a transfer to the in-memory balances.  When a member pays
+     * another, the debtor's balance increases by the amount and the
+     * creditor's balance decreases.
+     *
+     * @param groupId the group identifier
+     * @param fromMemberId the member who paid (debtor)
+     * @param toMemberId the member who received payment (creditor)
+     * @param amount the amount transferred
+     */
+    public void applyTransfer(Long groupId, Long fromMemberId, Long toMemberId, BigDecimal amount) {
+<span class="fc" id="L113">        Map&lt;Long, BigDecimal&gt; balances = groupBalances.computeIfAbsent(groupId, k -&gt; new ConcurrentHashMap&lt;&gt;());</span>
+        // The debtor's balance increases (less owed)
+<span class="fc" id="L115">        balances.merge(fromMemberId, amount, BigDecimal::add);</span>
+        // The creditor's balance decreases (less to collect)
+<span class="fc" id="L117">        balances.merge(toMemberId, amount.negate(), BigDecimal::add);</span>
+<span class="fc" id="L118">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

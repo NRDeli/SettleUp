@@ -1,1 +1,7 @@
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/settlement-service/src/test/java/org/ncsu/settleup/settlementservice/SettlementServiceApplicationTest.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/settlement-service/src/test/java/org/ncsu/settleup/settlementservice/client/MembershipClientTest.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/settlement-service/src/test/java/org/ncsu/settleup/settlementservice/config/AmqpConfigTest.java
 /Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/settlement-service/src/test/java/org/ncsu/settleup/settlementservice/controller/SettlementControllerTest.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/settlement-service/src/test/java/org/ncsu/settleup/settlementservice/exception/GlobalExceptionHandlerTest.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/settlement-service/src/test/java/org/ncsu/settleup/settlementservice/model/TransferTest.java
+/Users/nirmit/Documents/NCSU/SAD/A2/SettleUp/settlement-service/src/test/java/org/ncsu/settleup/settlementservice/service/SettlementServiceTest.java

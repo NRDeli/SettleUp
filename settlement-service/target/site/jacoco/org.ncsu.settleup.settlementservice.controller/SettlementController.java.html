@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SettlementController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SettleUp Settlement Service</a> &gt; <a href="index.source.html" class="el_package">org.ncsu.settleup.settlementservice.controller</a> &gt; <span class="el_source">SettlementController.java</span></div><h1>SettlementController.java</h1><pre class="source lang-java linenums">package org.ncsu.settleup.settlementservice.controller;
+
+import org.ncsu.settleup.common.dto.SettlementComputeRequest;
+import org.ncsu.settleup.common.dto.SettlementPlan;
+import org.ncsu.settleup.settlementservice.model.Transfer;
+import org.ncsu.settleup.settlementservice.repo.TransferRepository;
+import org.ncsu.settleup.settlementservice.service.SettlementService;
+import org.ncsu.settleup.settlementservice.client.MembershipClient;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import java.math.BigDecimal;
+import java.util.List;
+import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+/**
+ * REST controller for computing settlements and recording transfers.  The
+ * endpoints here mirror those designed in Assignment 1.
+ */
+@RestController
+public class SettlementController {
+    private final SettlementService settlementService;
+    private final TransferRepository transferRepository;
+    private final MembershipClient membershipClient;
+
+    public SettlementController(SettlementService settlementService,
+                                TransferRepository transferRepository,
+<span class="fc" id="L31">                                MembershipClient membershipClient) {</span>
+<span class="fc" id="L32">        this.settlementService = settlementService;</span>
+<span class="fc" id="L33">        this.transferRepository = transferRepository;</span>
+<span class="fc" id="L34">        this.membershipClient = membershipClient;</span>
+<span class="fc" id="L35">    }</span>
+
+    /**
+     * Compute a settlement plan for the given group.  This endpoint
+     * aggregates outstanding balances into a minimal set of transfers.
+     *
+     * @param request group ID and base currency
+     * @return a settlement plan
+     */
+    @PostMapping(&quot;/settlements/compute&quot;)
+    @Operation(summary = &quot;Compute a settlement plan for a group&quot;)
+    public ResponseEntity&lt;?&gt; computeSettlement(@RequestBody SettlementComputeRequest request) {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (!membershipClient.groupExists(request.groupId())) {</span>
+<span class="fc" id="L48">            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(&quot;Group not found&quot;);</span>
+        }
+<span class="fc" id="L50">        SettlementPlan plan = settlementService.computeSettlement(request.groupId());</span>
+<span class="fc" id="L51">        return ResponseEntity.ok(plan);</span>
+    }
+
+    /**
+     * Record a completed transfer.  Persist the transfer and apply it
+     * to the in-memory balances to keep them up to date.
+     */
+    @PostMapping(&quot;/transfers&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = &quot;Record a completed transfer between members&quot;)
+    public ResponseEntity&lt;?&gt; recordTransfer(@RequestBody TransferRequest request) {
+        // Validate group and members exist
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (!membershipClient.groupExists(request.groupId())) {</span>
+<span class="fc" id="L64">            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(&quot;Group not found&quot;);</span>
+        }
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (!membershipClient.memberExists(request.groupId(), request.fromMemberId()) ||</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">                !membershipClient.memberExists(request.groupId(), request.toMemberId())) {</span>
+<span class="fc" id="L68">            return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="fc" id="L69">                    .body(&quot;From or To member does not exist or is not part of the group&quot;);</span>
+        }
+<span class="fc" id="L71">        Transfer transfer = new Transfer();</span>
+<span class="fc" id="L72">        transfer.setGroupId(request.groupId());</span>
+<span class="fc" id="L73">        transfer.setFromMemberId(request.fromMemberId());</span>
+<span class="fc" id="L74">        transfer.setToMemberId(request.toMemberId());</span>
+<span class="fc" id="L75">        transfer.setAmount(request.amount());</span>
+<span class="fc" id="L76">        transfer.setNote(request.note());</span>
+<span class="fc" id="L77">        Transfer saved = transferRepository.save(transfer);</span>
+<span class="fc" id="L78">        applyTransferToBalances(request.groupId(), request.fromMemberId(), request.toMemberId(), request.amount());</span>
+<span class="fc" id="L79">        return new ResponseEntity&lt;&gt;(saved, HttpStatus.CREATED);</span>
+    }
+
+    private void applyTransferToBalances(Long groupId, Long fromMemberId, Long toMemberId, BigDecimal amount) {
+        // Delegate to the settlement service to update balances
+<span class="fc" id="L84">        settlementService.applyTransfer(groupId, fromMemberId, toMemberId, amount);</span>
+<span class="fc" id="L85">    }</span>
+
+    /**
+     * Retrieve a previously recorded transfer by ID.
+     */
+    @GetMapping(&quot;/transfers/{id}&quot;)
+    @Operation(summary = &quot;Retrieve a transfer by ID&quot;)
+    public ResponseEntity&lt;Transfer&gt; getTransfer(@PathVariable Long id) {
+<span class="fc" id="L93">        Optional&lt;Transfer&gt; transfer = transferRepository.findById(id);</span>
+<span class="fc" id="L94">        return transfer.map(ResponseEntity::ok)</span>
+<span class="fc" id="L95">                .orElse(ResponseEntity.notFound().build());</span>
+    }
+
+    /**
+     * Request body for recording a transfer.
+     */
+<span class="fc" id="L101">    public static record TransferRequest(Long groupId,</span>
+                                         Long fromMemberId,
+                                         Long toMemberId,
+                                         BigDecimal amount,
+                                         String note) {
+    }
+
+    /**
+     * Update an existing transfer.  When a transfer is updated, the old transfer
+     * effects are reversed and the new values are applied to the in-memory balances.
+     */
+    @PutMapping(&quot;/transfers/{id}&quot;)
+    @Operation(summary = &quot;Update an existing transfer and adjust balances&quot;)
+    public ResponseEntity&lt;?&gt; updateTransfer(@PathVariable Long id,
+                                            @RequestBody TransferRequest request) {
+<span class="fc" id="L116">        return transferRepository.findById(id)</span>
+<span class="fc" id="L117">                .map(existing -&gt; {</span>
+                    // Validate group and members exist
+<span class="fc bfc" id="L119" title="All 2 branches covered.">                    if (!membershipClient.groupExists(request.groupId())) {</span>
+<span class="fc" id="L120">                        return ResponseEntity.status(HttpStatus.NOT_FOUND)</span>
+<span class="fc" id="L121">                                .body(&quot;Group not found&quot;);</span>
+                    }
+<span class="fc bfc" id="L123" title="All 2 branches covered.">                    if (!membershipClient.memberExists(request.groupId(), request.fromMemberId()) ||</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">                            !membershipClient.memberExists(request.groupId(), request.toMemberId())) {</span>
+<span class="fc" id="L125">                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="fc" id="L126">                                .body(&quot;From or To member does not exist or is not part of the group&quot;);</span>
+                    }
+                    // Reverse the old transfer
+<span class="fc" id="L129">                    settlementService.applyTransfer(existing.getGroupId(), existing.getToMemberId(), existing.getFromMemberId(), existing.getAmount());</span>
+                    // Apply new values
+<span class="fc" id="L131">                    existing.setGroupId(request.groupId());</span>
+<span class="fc" id="L132">                    existing.setFromMemberId(request.fromMemberId());</span>
+<span class="fc" id="L133">                    existing.setToMemberId(request.toMemberId());</span>
+<span class="fc" id="L134">                    existing.setAmount(request.amount());</span>
+<span class="fc" id="L135">                    existing.setNote(request.note());</span>
+<span class="fc" id="L136">                    Transfer saved = transferRepository.save(existing);</span>
+                    // Apply the new transfer to balances
+<span class="fc" id="L138">                    settlementService.applyTransfer(saved.getGroupId(), saved.getFromMemberId(), saved.getToMemberId(), saved.getAmount());</span>
+<span class="fc" id="L139">                    return ResponseEntity.ok(saved);</span>
+                })
+<span class="fc" id="L141">                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(&quot;Transfer not found&quot;));</span>
+    }
+
+    /**
+     * Delete a transfer.  Removing a transfer reverses its effects on the in-memory balances.
+     */
+    @DeleteMapping(&quot;/transfers/{id}&quot;)
+    @Operation(summary = &quot;Delete a transfer and reverse its effects&quot;)
+    public ResponseEntity&lt;String&gt; deleteTransfer(@PathVariable Long id) {
+<span class="fc" id="L150">        return transferRepository.findById(id)</span>
+<span class="fc" id="L151">                .map(existing -&gt; {</span>
+<span class="fc" id="L152">                    settlementService.applyTransfer(existing.getGroupId(), existing.getToMemberId(), existing.getFromMemberId(), existing.getAmount());</span>
+<span class="fc" id="L153">                    transferRepository.delete(existing);</span>
+<span class="fc" id="L154">                    return ResponseEntity.ok(&quot;Transfer deleted successfully&quot;);</span>
+                })
+<span class="fc" id="L156">                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(&quot;Transfer not found&quot;));</span>
+    }
+
+    /**
+     * List transfers for a given group.
+     */
+    @GetMapping(&quot;/groups/{groupId}/transfers&quot;)
+    @Operation(summary = &quot;List transfers for a group&quot;)
+    public ResponseEntity&lt;?&gt; getTransfersForGroup(@PathVariable Long groupId) {
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (!membershipClient.groupExists(groupId)) {</span>
+<span class="fc" id="L166">            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(&quot;Group not found&quot;);</span>
+        }
+<span class="fc" id="L168">        List&lt;Transfer&gt; transfers = transferRepository.findByGroupId(groupId);</span>
+<span class="fc" id="L169">        return ResponseEntity.ok(transfers);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

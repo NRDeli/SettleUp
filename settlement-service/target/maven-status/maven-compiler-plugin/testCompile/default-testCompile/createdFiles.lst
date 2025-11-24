@@ -1,1 +1,7 @@
+org/ncsu/settleup/settlementservice/exception/GlobalExceptionHandlerTest.class
+org/ncsu/settleup/settlementservice/model/TransferTest.class
 org/ncsu/settleup/settlementservice/controller/SettlementControllerTest.class
+org/ncsu/settleup/settlementservice/SettlementServiceApplicationTest.class
+org/ncsu/settleup/settlementservice/service/SettlementServiceTest.class
+org/ncsu/settleup/settlementservice/config/AmqpConfigTest.class
+org/ncsu/settleup/settlementservice/client/MembershipClientTest.class

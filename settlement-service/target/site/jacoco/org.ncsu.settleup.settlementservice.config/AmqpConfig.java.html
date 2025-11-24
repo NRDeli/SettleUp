@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AmqpConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SettleUp Settlement Service</a> &gt; <a href="index.source.html" class="el_package">org.ncsu.settleup.settlementservice.config</a> &gt; <span class="el_source">AmqpConfig.java</span></div><h1>AmqpConfig.java</h1><pre class="source lang-java linenums">package org.ncsu.settleup.settlementservice.config;
+
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * RabbitMQ configuration for the settlement service.  Declares a
+ * durable queue bound to the application exchange so that expense
+ * events can be consumed.
+ */
+@Configuration
+<span class="fc" id="L19">public class AmqpConfig {</span>
+    public static final String EXCHANGE_NAME = &quot;settleup.exchange&quot;;
+    public static final String QUEUE_NAME = &quot;settlement.expense.recorded.queue&quot;;
+
+    @Bean
+    public TopicExchange topicExchange() {
+<span class="fc" id="L25">        return new TopicExchange(EXCHANGE_NAME);</span>
+    }
+
+    @Bean
+    public Queue queue() {
+<span class="fc" id="L30">        return new Queue(QUEUE_NAME, true);</span>
+    }
+
+    @Bean
+    public Binding binding(Queue queue, TopicExchange topicExchange) {
+<span class="fc" id="L35">        return BindingBuilder.bind(queue).to(topicExchange).with(&quot;expense.recorded&quot;);</span>
+    }
+
+    @Bean
+    public Jackson2JsonMessageConverter jackson2JsonMessageConverter() {
+<span class="fc" id="L40">        return new Jackson2JsonMessageConverter();</span>
+    }
+
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
+                                         Jackson2JsonMessageConverter messageConverter) {
+<span class="fc" id="L46">        RabbitTemplate template = new RabbitTemplate(connectionFactory);</span>
+<span class="fc" id="L47">        template.setMessageConverter(messageConverter);</span>
+<span class="fc" id="L48">        return template;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
