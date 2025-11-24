@@ -1,9 +1,11 @@
 package org.ncsu.settleup.expenseservice.client;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpMethod;
 
 import java.util.List;
 import java.util.Map;
@@ -52,10 +54,13 @@ public class MembershipClient {
      */
     public boolean memberExists(Long groupId, Long memberId) {
         try {
-            ResponseEntity<List> response = restTemplate.getForEntity(
-                    membershipServiceUrl + "/groups/" + groupId + "/members",
-                    List.class);
-            List<?> members = response.getBody();
+            ResponseEntity<List<Long>> response = restTemplate.exchange(
+                membershipServiceUrl + "/groups/" + groupId + "/members",
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<List<Long>>() {}
+            );
+            List<Long> members = response.getBody();
             if (members == null) {
                 return false;
             }
