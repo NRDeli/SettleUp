@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  * REST controller for recording and retrieving expenses.  The API
- * corresponds to the design from Assignment 1.
+ * corresponds to the design from Assignment 1.
  */
 @RestController
 public class ExpenseController {
@@ -126,36 +126,24 @@ public class ExpenseController {
                                            @RequestBody ExpenseRequest request) {
         return expenseRepository.findById(id)
                 .map(existing -> {
-                    // Validate group and payer membership
-                    if (!membershipClient.groupExists(request.groupId())) {
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body("Group does not exist");
+                    ResponseEntity<String> validationError = validateGroupAndPayer(request);
+                    if (validationError != null) {
+                        return validationError;
                     }
-                    if (!membershipClient.memberExists(request.groupId(), request.payerMemberId())) {
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body("Payer does not exist or is not part of the group");
+
+                    SplitValidationResult splitValidation = validateSplits(existing, request);
+                    if (splitValidation.hasError()) {
+                        return splitValidation.errorResponse();
                     }
-                    // Validate splits
-                    BigDecimal sum = BigDecimal.ZERO;
-                    List<SplitLine> newSplits = new ArrayList<>();
-                    if (request.splits() != null) {
-                        for (SplitRequest sr : request.splits()) {
-                            if (!membershipClient.memberExists(request.groupId(), sr.memberId())) {
-                                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                        .body("Split member " + sr.memberId() + " does not exist or is not part of the group");
-                            }
-                            SplitLine sl = new SplitLine();
-                            sl.setMemberId(sr.memberId());
-                            sl.setShareAmount(sr.shareAmount());
-                            sl.setExpense(existing);
-                            newSplits.add(sl);
-                            sum = sum.add(sr.shareAmount());
-                        }
-                    }
+
+                    BigDecimal sum = splitValidation.sum();
+                    List<SplitLine> newSplits = splitValidation.splits();
+
                     if (request.totalAmount() != null && sum.compareTo(request.totalAmount()) != 0) {
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                                 .body("Sum of splits must equal total amount");
                     }
+
                     existing.setGroupId(request.groupId());
                     existing.setPayerMemberId(request.payerMemberId());
                     existing.setCurrency(request.currency());
@@ -167,6 +155,75 @@ public class ExpenseController {
                     return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Expense not found"));
+    }
+
+    private ResponseEntity<String> validateGroupAndPayer(ExpenseRequest request) {
+        if (!membershipClient.groupExists(request.groupId())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Group does not exist");
+        }
+        if (!membershipClient.memberExists(request.groupId(), request.payerMemberId())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Payer does not exist or is not part of the group");
+        }
+        return null;
+    }
+
+    private SplitValidationResult validateSplits(Expense existing, ExpenseRequest request) {
+        BigDecimal sum = BigDecimal.ZERO;
+        List<SplitLine> newSplits = new ArrayList<>();
+        if (request.splits() != null) {
+            for (SplitRequest sr : request.splits()) {
+                if (!membershipClient.memberExists(request.groupId(), sr.memberId())) {
+                    ResponseEntity<String> errorResponse = ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body("Split member " + sr.memberId() + " does not exist or is not part of the group");
+                    return SplitValidationResult.error(errorResponse);
+                }
+                SplitLine sl = new SplitLine();
+                sl.setMemberId(sr.memberId());
+                sl.setShareAmount(sr.shareAmount());
+                sl.setExpense(existing);
+                newSplits.add(sl);
+                sum = sum.add(sr.shareAmount());
+            }
+        }
+        return SplitValidationResult.success(newSplits, sum);
+    }
+
+    private static class SplitValidationResult {
+        private final List<SplitLine> splits;
+        private final BigDecimal sum;
+        private final ResponseEntity<String> error;
+
+        private SplitValidationResult(List<SplitLine> splits, BigDecimal sum, ResponseEntity<String> error) {
+            this.splits = splits;
+            this.sum = sum;
+            this.error = error;
+        }
+
+        static SplitValidationResult success(List<SplitLine> splits, BigDecimal sum) {
+            return new SplitValidationResult(splits, sum, null);
+        }
+
+        static SplitValidationResult error(ResponseEntity<String> error) {
+            return new SplitValidationResult(null, null, error);
+        }
+
+        boolean hasError() {
+            return error != null;
+        }
+
+        ResponseEntity<String> errorResponse() {
+            return error;
+        }
+
+        List<SplitLine> splits() {
+            return splits;
+        }
+
+        BigDecimal sum() {
+            return sum;
+        }
     }
 
     /**
