@@ -245,12 +245,13 @@ public class ExpenseController {
      */
     @GetMapping("/groups/{groupId}/expenses")
     @Operation(summary = "List expenses for a given group")
-    public ResponseEntity<?> getExpensesForGroup(@PathVariable Long groupId) {
+    public ResponseEntity<Object> getExpensesForGroup(@PathVariable Long groupId) {
         // Validate group exists
         if (!membershipClient.groupExists(groupId)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Group not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .<Object>body("Group not found");
         }
         List<Expense> expenses = expenseRepository.findByGroupId(groupId);
-        return ResponseEntity.ok(expenses);
+        return ResponseEntity.ok((Object) expenses);
     }
 }
