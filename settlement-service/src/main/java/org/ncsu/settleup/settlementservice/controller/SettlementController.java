@@ -17,7 +17,7 @@ import java.util.Optional;
 
 /**
  * REST controller for computing settlements and recording transfers.  The
- * endpoints here mirror those designed in Assignment 1.
+ * endpoints here mirror those designed in Assignment 1.
  */
 @RestController
 public class SettlementController {
@@ -42,12 +42,13 @@ public class SettlementController {
      */
     @PostMapping("/settlements/compute")
     @Operation(summary = "Compute a settlement plan for a group")
-    public ResponseEntity<?> computeSettlement(@RequestBody SettlementComputeRequest request) {
+    public ResponseEntity<Object> computeSettlement(@RequestBody SettlementComputeRequest request) {
         if (!membershipClient.groupExists(request.groupId())) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Group not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .<Object>body("Group not found");
         }
         SettlementPlan plan = settlementService.computeSettlement(request.groupId());
-        return ResponseEntity.ok(plan);
+        return ResponseEntity.ok((Object) plan);
     }
 
     /**
@@ -57,15 +58,16 @@ public class SettlementController {
     @PostMapping("/transfers")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Record a completed transfer between members")
-    public ResponseEntity<?> recordTransfer(@RequestBody TransferRequest request) {
+    public ResponseEntity<Object> recordTransfer(@RequestBody TransferRequest request) {
         // Validate group and members exist
         if (!membershipClient.groupExists(request.groupId())) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Group not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .<Object>body("Group not found");
         }
         if (!membershipClient.memberExists(request.groupId(), request.fromMemberId()) ||
                 !membershipClient.memberExists(request.groupId(), request.toMemberId())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("From or To member does not exist or is not part of the group");
+                    .<Object>body("From or To member does not exist or is not part of the group");
         }
         Transfer transfer = new Transfer();
         transfer.setGroupId(request.groupId());
@@ -75,7 +77,7 @@ public class SettlementController {
         transfer.setNote(request.note());
         Transfer saved = transferRepository.save(transfer);
         applyTransferToBalances(request.groupId(), request.fromMemberId(), request.toMemberId(), request.amount());
-        return new ResponseEntity<>(saved, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body((Object) saved);
     }
 
     private void applyTransferToBalances(Long groupId, Long fromMemberId, Long toMemberId, BigDecimal amount) {
@@ -110,22 +112,27 @@ public class SettlementController {
      */
     @PutMapping("/transfers/{id}")
     @Operation(summary = "Update an existing transfer and adjust balances")
-    public ResponseEntity<?> updateTransfer(@PathVariable Long id,
-                                            @RequestBody TransferRequest request) {
+    public ResponseEntity<Object> updateTransfer(@PathVariable Long id,
+                                                 @RequestBody TransferRequest request) {
         return transferRepository.findById(id)
                 .map(existing -> {
                     // Validate group and members exist
                     if (!membershipClient.groupExists(request.groupId())) {
                         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body("Group not found");
+                                .<Object>body("Group not found");
                     }
                     if (!membershipClient.memberExists(request.groupId(), request.fromMemberId()) ||
                             !membershipClient.memberExists(request.groupId(), request.toMemberId())) {
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body("From or To member does not exist or is not part of the group");
+                                .<Object>body("From or To member does not exist or is not part of the group");
                     }
                     // Reverse the old transfer
-                    settlementService.applyTransfer(existing.getGroupId(), existing.getToMemberId(), existing.getFromMemberId(), existing.getAmount());
+                    settlementService.applyTransfer(
+                            existing.getGroupId(),
+                            existing.getToMemberId(),
+                            existing.getFromMemberId(),
+                            existing.getAmount()
+                    );
                     // Apply new values
                     existing.setGroupId(request.groupId());
                     existing.setFromMemberId(request.fromMemberId());
@@ -134,10 +141,16 @@ public class SettlementController {
                     existing.setNote(request.note());
                     Transfer saved = transferRepository.save(existing);
                     // Apply the new transfer to balances
-                    settlementService.applyTransfer(saved.getGroupId(), saved.getFromMemberId(), saved.getToMemberId(), saved.getAmount());
-                    return ResponseEntity.ok(saved);
+                    settlementService.applyTransfer(
+                            saved.getGroupId(),
+                            saved.getFromMemberId(),
+                            saved.getToMemberId(),
+                            saved.getAmount()
+                    );
+                    return ResponseEntity.ok((Object) saved);
                 })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transfer not found"));
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .<Object>body("Transfer not found"));
     }
 
     /**
@@ -148,7 +161,12 @@ public class SettlementController {
     public ResponseEntity<String> deleteTransfer(@PathVariable Long id) {
         return transferRepository.findById(id)
                 .map(existing -> {
-                    settlementService.applyTransfer(existing.getGroupId(), existing.getToMemberId(), existing.getFromMemberId(), existing.getAmount());
+                    settlementService.applyTransfer(
+                            existing.getGroupId(),
+                            existing.getToMemberId(),
+                            existing.getFromMemberId(),
+                            existing.getAmount()
+                    );
                     transferRepository.delete(existing);
                     return ResponseEntity.ok("Transfer deleted successfully");
                 })
@@ -160,11 +178,12 @@ public class SettlementController {
      */
     @GetMapping("/groups/{groupId}/transfers")
     @Operation(summary = "List transfers for a group")
-    public ResponseEntity<?> getTransfersForGroup(@PathVariable Long groupId) {
+    public ResponseEntity<Object> getTransfersForGroup(@PathVariable Long groupId) {
         if (!membershipClient.groupExists(groupId)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Group not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .<Object>body("Group not found");
         }
         List<Transfer> transfers = transferRepository.findByGroupId(groupId);
-        return ResponseEntity.ok(transfers);
+        return ResponseEntity.ok((Object) transfers);
     }
 }
