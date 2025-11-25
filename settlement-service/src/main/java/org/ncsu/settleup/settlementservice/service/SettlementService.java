@@ -73,7 +73,8 @@ public class SettlementService {
         creditors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
         debtors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
         List<SettlementPlan.TransferDto> transfers = new ArrayList<>();
-        int i = 0, j = 0;
+        int i = 0;
+        int j = 0;
         while (i < debtors.size() && j < creditors.size()) {
             Map.Entry<Long, BigDecimal> debtor = debtors.get(i);
             Map.Entry<Long, BigDecimal> creditor = creditors.get(j);
