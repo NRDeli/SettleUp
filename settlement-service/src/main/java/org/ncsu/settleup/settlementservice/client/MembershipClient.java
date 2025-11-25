@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 
 import java.util.List;
 import java.util.Map;
@@ -34,19 +36,20 @@ public class MembershipClient {
 
     public boolean memberExists(Long groupId, Long memberId) {
         try {
-            ResponseEntity<List> response = restTemplate.getForEntity(
+            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
                     membershipServiceUrl + "/groups/" + groupId + "/members",
-                    List.class);
-            List<?> members = response.getBody();
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+            );
+            List<Map<String, Object>> members = response.getBody();
             if (members == null) {
                 return false;
             }
-            for (Object obj : members) {
-                if (obj instanceof Map<?, ?> map) {
-                    Object idObj = map.get("id");
-                    if (idObj instanceof Number num && num.longValue() == memberId) {
-                        return true;
-                    }
+            for (Map<String, Object> member : members) {
+                Object idObj = member.get("id");
+                if (idObj instanceof Number num && num.longValue() == memberId) {
+                    return true;
                 }
             }
             return false;
