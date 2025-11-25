@@ -24,6 +24,7 @@ public class SettlementController {
     private final SettlementService settlementService;
     private final TransferRepository transferRepository;
     private final MembershipClient membershipClient;
+    private static final String GROUP_NOT_FOUND_MESSAGE = "Group not found";
 
     public SettlementController(SettlementService settlementService,
                                 TransferRepository transferRepository,
@@ -45,7 +46,7 @@ public class SettlementController {
     public ResponseEntity<Object> computeSettlement(@RequestBody SettlementComputeRequest request) {
         if (!membershipClient.groupExists(request.groupId())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .<Object>body("Group not found");
+                    .<Object>body(GROUP_NOT_FOUND_MESSAGE);
         }
         SettlementPlan plan = settlementService.computeSettlement(request.groupId());
         return ResponseEntity.ok((Object) plan);
@@ -62,7 +63,7 @@ public class SettlementController {
         // Validate group and members exist
         if (!membershipClient.groupExists(request.groupId())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .<Object>body("Group not found");
+                    .<Object>body(GROUP_NOT_FOUND_MESSAGE);
         }
         if (!membershipClient.memberExists(request.groupId(), request.fromMemberId()) ||
                 !membershipClient.memberExists(request.groupId(), request.toMemberId())) {
@@ -119,7 +120,7 @@ public class SettlementController {
                     // Validate group and members exist
                     if (!membershipClient.groupExists(request.groupId())) {
                         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .<Object>body("Group not found");
+                                .<Object>body(GROUP_NOT_FOUND_MESSAGE);
                     }
                     if (!membershipClient.memberExists(request.groupId(), request.fromMemberId()) ||
                             !membershipClient.memberExists(request.groupId(), request.toMemberId())) {
@@ -181,7 +182,7 @@ public class SettlementController {
     public ResponseEntity<Object> getTransfersForGroup(@PathVariable Long groupId) {
         if (!membershipClient.groupExists(groupId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .<Object>body("Group not found");
+                    .<Object>body(GROUP_NOT_FOUND_MESSAGE);
         }
         List<Transfer> transfers = transferRepository.findByGroupId(groupId);
         return ResponseEntity.ok((Object) transfers);

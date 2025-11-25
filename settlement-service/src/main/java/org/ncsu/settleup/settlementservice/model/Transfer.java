@@ -30,6 +30,7 @@ public class Transfer {
     private String note;
 
     public Transfer() {
+        // Default constructor required by JPA for entity instantiation
     }
 
     public Long getId() {
