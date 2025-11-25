@@ -2,6 +2,9 @@ package org.ncsu.settleup.settlementservice.client;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -13,9 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -43,31 +44,65 @@ class MembershipClientTest {
 
     @Test
     void groupExists_returnsTrue_whenRestCallSucceeds() {
-        when(rest.getForEntity(anyString(), eq(Object.class))).thenReturn(ResponseEntity.ok().build());
+        when(rest.getForEntity(anyString(), eq(Object.class)))
+                .thenReturn(ResponseEntity.ok().build());
+
         assertTrue(client.groupExists(1L), "Expected true when REST call does not throw");
-        verify(rest, times(1)).getForEntity(contains("/groups/1"), eq(Object.class));
+
+        verify(rest, times(1))
+                .getForEntity(contains("/groups/1"), eq(Object.class));
     }
 
     @Test
     void groupExists_returnsFalse_whenRestCallThrows() {
-        when(rest.getForEntity(anyString(), eq(Object.class))).thenThrow(new RuntimeException("fail"));
+        when(rest.getForEntity(anyString(), eq(Object.class)))
+                .thenThrow(new RuntimeException("fail"));
+
         assertFalse(client.groupExists(2L), "Expected false when REST call throws");
-        verify(rest, times(1)).getForEntity(contains("/groups/2"), eq(Object.class));
+
+        verify(rest, times(1))
+                .getForEntity(contains("/groups/2"), eq(Object.class));
     }
 
     @Test
     void memberExists_returnsFalse_whenRestCallThrows() {
-        when(rest.getForEntity(anyString(), eq(List.class))).thenThrow(new RuntimeException("fail"));
+        when(rest.exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                isNull(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenThrow(new RuntimeException("fail"));
+
         assertFalse(client.memberExists(1L, 2L), "Expected false when REST call throws");
-        verify(rest, times(1)).getForEntity(contains("/groups/1"), eq(List.class));
+
+        verify(rest, times(1)).exchange(
+                contains("/groups/1/members"),
+                eq(HttpMethod.GET),
+                isNull(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        );
     }
 
     @Test
     void memberExists_returnsFalse_whenBodyNull() {
-        ResponseEntity<List> response = new ResponseEntity<>(null, HttpStatus.OK);
-        when(rest.getForEntity(anyString(), eq(List.class))).thenReturn(response);
+        ResponseEntity<List<Map<String, Object>>> response =
+                new ResponseEntity<>(null, HttpStatus.OK);
+
+        when(rest.exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                isNull(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(response);
+
         assertFalse(client.memberExists(1L, 3L), "Expected false when response body is null");
-        verify(rest, times(1)).getForEntity(contains("/groups/1"), eq(List.class));
+
+        verify(rest, times(1)).exchange(
+            contains("/groups/1/members"),
+            eq(HttpMethod.GET),
+            isNull(),
+            ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        );
     }
 
     @Test
@@ -77,10 +112,25 @@ class MembershipClientTest {
         Map<String, Object> m = new HashMap<>();
         m.put("id", 99L);
         members.add(m);
-        ResponseEntity<List> response = new ResponseEntity<>((List) members, HttpStatus.OK);
-        when(rest.getForEntity(anyString(), eq(List.class))).thenReturn(response);
+
+        ResponseEntity<List<Map<String, Object>>> response =
+                new ResponseEntity<>(members, HttpStatus.OK);
+
+        when(rest.exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                isNull(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(response);
+
         assertFalse(client.memberExists(2L, 1L), "Expected false when memberId not in list");
-        verify(rest, times(1)).getForEntity(contains("/groups/2"), eq(List.class));
+
+        verify(rest, times(1)).exchange(
+                contains("/groups/2/members"),
+                eq(HttpMethod.GET),
+                isNull(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        );
     }
 
     @Test
@@ -89,9 +139,25 @@ class MembershipClientTest {
         Map<String, Object> m1 = new HashMap<>();
         m1.put("id", 5L);
         members.add(m1);
-        ResponseEntity<List> response = new ResponseEntity<>((List) members, HttpStatus.OK);
-        when(rest.getForEntity(anyString(), eq(List.class))).thenReturn(response);
-        assertTrue(client.memberExists(3L, 5L), "Expected true when the id is present in response body");
-        verify(rest, times(1)).getForEntity(contains("/groups/3"), eq(List.class));
+
+        ResponseEntity<List<Map<String, Object>>> response =
+                new ResponseEntity<>(members, HttpStatus.OK);
+
+        when(rest.exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                isNull(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(response);
+
+        assertTrue(client.memberExists(3L, 5L),
+                "Expected true when the id is present in response body");
+
+        verify(rest, times(1)).exchange(
+                contains("/groups/3/members"),
+                eq(HttpMethod.GET),
+                isNull(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        );
     }
 }

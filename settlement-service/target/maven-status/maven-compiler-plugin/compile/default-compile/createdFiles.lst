@@ -2,6 +2,7 @@ org/ncsu/settleup/settlementservice/exception/GlobalExceptionHandler.class
 org/ncsu/settleup/settlementservice/controller/SettlementController$TransferRequest.class
 org/ncsu/settleup/settlementservice/service/SettlementService.class
 org/ncsu/settleup/settlementservice/controller/SettlementController.class
+org/ncsu/settleup/settlementservice/client/MembershipClient$1.class
 org/ncsu/settleup/settlementservice/client/MembershipClient.class
 org/ncsu/settleup/settlementservice/config/AmqpConfig.class
 org/ncsu/settleup/settlementservice/repo/TransferRepository.class

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,9 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * durably.
  */
 @Service
-<span class="fc" id="L24">public class SettlementService {</span>
+<span class="fc" id="L23">public class SettlementService {</span>
     // groupId -&gt; (memberId -&gt; net balance)
-<span class="fc" id="L26">    private final Map&lt;Long, Map&lt;Long, BigDecimal&gt;&gt; groupBalances = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L25">    private final Map&lt;Long, Map&lt;Long, BigDecimal&gt;&gt; groupBalances = new ConcurrentHashMap&lt;&gt;();</span>
 
     /**
      * Handle an expense recorded event by updating the net balances.
@@ -32,22 +31,22 @@ import java.util.concurrent.ConcurrentHashMap;
      */
     @RabbitListener(queues = &quot;settlement.expense.recorded.queue&quot;)
     public void handleExpenseRecorded(ExpenseRecordedEvent event) {
-<span class="fc" id="L35">        Map&lt;Long, BigDecimal&gt; balances = groupBalances.computeIfAbsent(event.groupId(), k -&gt; new ConcurrentHashMap&lt;&gt;());</span>
+<span class="fc" id="L34">        Map&lt;Long, BigDecimal&gt; balances = groupBalances.computeIfAbsent(event.groupId(), k -&gt; new ConcurrentHashMap&lt;&gt;());</span>
 
         // Compute total of shares
-<span class="fc" id="L38">        BigDecimal total = BigDecimal.ZERO;</span>
-<span class="fc bfc" id="L39" title="All 2 branches covered.">        for (BigDecimal share : event.shares().values()) {</span>
-<span class="fc" id="L40">            total = total.add(share);</span>
-<span class="fc" id="L41">        }</span>
+<span class="fc" id="L37">        BigDecimal total = BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        for (BigDecimal share : event.shares().values()) {</span>
+<span class="fc" id="L39">            total = total.add(share);</span>
+<span class="fc" id="L40">        }</span>
         // Payer gets credit for paying the total
-<span class="fc" id="L43">        balances.merge(event.payerMemberId(), total, BigDecimal::add);</span>
+<span class="fc" id="L42">        balances.merge(event.payerMemberId(), total, BigDecimal::add);</span>
         // Each member owes their share
-<span class="fc bfc" id="L45" title="All 2 branches covered.">        for (Map.Entry&lt;Long, BigDecimal&gt; entry : event.shares().entrySet()) {</span>
-<span class="fc" id="L46">            Long memberId = entry.getKey();</span>
-<span class="fc" id="L47">            BigDecimal amount = entry.getValue();</span>
-<span class="fc" id="L48">            balances.merge(memberId, amount.negate(), BigDecimal::add);</span>
-<span class="fc" id="L49">        }</span>
-<span class="fc" id="L50">    }</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        for (Map.Entry&lt;Long, BigDecimal&gt; entry : event.shares().entrySet()) {</span>
+<span class="fc" id="L45">            Long memberId = entry.getKey();</span>
+<span class="fc" id="L46">            BigDecimal amount = entry.getValue();</span>
+<span class="fc" id="L47">            balances.merge(memberId, amount.negate(), BigDecimal::add);</span>
+<span class="fc" id="L48">        }</span>
+<span class="fc" id="L49">    }</span>
 
     /**
      * Compute a settlement plan by pairing debtors and creditors.  This
@@ -59,22 +58,23 @@ import java.util.concurrent.ConcurrentHashMap;
      * @return a plan consisting of transfers to settle all balances
      */
     public SettlementPlan computeSettlement(Long groupId) {
-<span class="fc" id="L62">        Map&lt;Long, BigDecimal&gt; balances = groupBalances.getOrDefault(groupId, Map.of());</span>
+<span class="fc" id="L61">        Map&lt;Long, BigDecimal&gt; balances = groupBalances.getOrDefault(groupId, Map.of());</span>
         // Separate creditors and debtors
-<span class="fc" id="L64">        List&lt;Map.Entry&lt;Long, BigDecimal&gt;&gt; creditors = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L65">        List&lt;Map.Entry&lt;Long, BigDecimal&gt;&gt; debtors = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L66" title="All 2 branches covered.">        for (Map.Entry&lt;Long, BigDecimal&gt; entry : balances.entrySet()) {</span>
-<span class="fc bfc" id="L67" title="All 2 branches covered.">            if (entry.getValue().compareTo(BigDecimal.ZERO) &gt; 0) {</span>
-<span class="fc" id="L68">                creditors.add(Map.entry(entry.getKey(), entry.getValue()));</span>
-<span class="fc bfc" id="L69" title="All 2 branches covered.">            } else if (entry.getValue().compareTo(BigDecimal.ZERO) &lt; 0) {</span>
-<span class="fc" id="L70">                debtors.add(Map.entry(entry.getKey(), entry.getValue().negate()));</span>
+<span class="fc" id="L63">        List&lt;Map.Entry&lt;Long, BigDecimal&gt;&gt; creditors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L64">        List&lt;Map.Entry&lt;Long, BigDecimal&gt;&gt; debtors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        for (Map.Entry&lt;Long, BigDecimal&gt; entry : balances.entrySet()) {</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">            if (entry.getValue().compareTo(BigDecimal.ZERO) &gt; 0) {</span>
+<span class="fc" id="L67">                creditors.add(Map.entry(entry.getKey(), entry.getValue()));</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">            } else if (entry.getValue().compareTo(BigDecimal.ZERO) &lt; 0) {</span>
+<span class="fc" id="L69">                debtors.add(Map.entry(entry.getKey(), entry.getValue().negate()));</span>
             }
-<span class="fc" id="L72">        }</span>
+<span class="fc" id="L71">        }</span>
         // Sort by balance descending
-<span class="fc" id="L74">        creditors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));</span>
-<span class="fc" id="L75">        debtors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));</span>
-<span class="fc" id="L76">        List&lt;SettlementPlan.TransferDto&gt; transfers = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L77">        int i = 0, j = 0;</span>
+<span class="fc" id="L73">        creditors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));</span>
+<span class="fc" id="L74">        debtors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));</span>
+<span class="fc" id="L75">        List&lt;SettlementPlan.TransferDto&gt; transfers = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L76">        int i = 0;</span>
+<span class="fc" id="L77">        int j = 0;</span>
 <span class="fc bfc" id="L78" title="All 4 branches covered.">        while (i &lt; debtors.size() &amp;&amp; j &lt; creditors.size()) {</span>
 <span class="fc" id="L79">            Map.Entry&lt;Long, BigDecimal&gt; debtor = debtors.get(i);</span>
 <span class="fc" id="L80">            Map.Entry&lt;Long, BigDecimal&gt; creditor = creditors.get(j);</span>
