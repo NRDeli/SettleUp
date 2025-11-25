@@ -122,11 +122,11 @@ public class ExpenseController {
      */
     @PutMapping("/expenses/{id}")
     @Operation(summary = "Update an existing expense with new values and splits")
-    public ResponseEntity<?> updateExpense(@PathVariable Long id,
+    public ResponseEntity<Object> updateExpense(@PathVariable Long id,
                                            @RequestBody ExpenseRequest request) {
         return expenseRepository.findById(id)
                 .map(existing -> {
-                    ResponseEntity<String> validationError = validateGroupAndPayer(request);
+                    ResponseEntity<Object> validationError = validateGroupAndPayer(request);
                     if (validationError != null) {
                         return validationError;
                     }
@@ -141,7 +141,7 @@ public class ExpenseController {
 
                     if (request.totalAmount() != null && sum.compareTo(request.totalAmount()) != 0) {
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body("Sum of splits must equal total amount");
+                                .<Object>body("Sum of splits must equal total amount");
                     }
 
                     existing.setGroupId(request.groupId());
@@ -152,19 +152,19 @@ public class ExpenseController {
                     existing.getSplits().clear();
                     existing.setSplits(newSplits);
                     Expense saved = expenseRepository.save(existing);
-                    return ResponseEntity.ok(saved);
+                    return ResponseEntity.ok((Object) saved);
                 })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Expense not found"));
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).<Object>body("Expense not found"));
     }
 
-    private ResponseEntity<String> validateGroupAndPayer(ExpenseRequest request) {
+    private ResponseEntity<Object> validateGroupAndPayer(ExpenseRequest request) {
         if (!membershipClient.groupExists(request.groupId())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Group does not exist");
+                    .<Object>body("Group does not exist");
         }
         if (!membershipClient.memberExists(request.groupId(), request.payerMemberId())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Payer does not exist or is not part of the group");
+                    .<Object>body("Payer does not exist or is not part of the group");
         }
         return null;
     }
@@ -175,8 +175,8 @@ public class ExpenseController {
         if (request.splits() != null) {
             for (SplitRequest sr : request.splits()) {
                 if (!membershipClient.memberExists(request.groupId(), sr.memberId())) {
-                    ResponseEntity<String> errorResponse = ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .body("Split member " + sr.memberId() + " does not exist or is not part of the group");
+                    ResponseEntity<Object> errorResponse = ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .<Object>body("Split member " + sr.memberId() + " does not exist or is not part of the group");
                     return SplitValidationResult.error(errorResponse);
                 }
                 SplitLine sl = new SplitLine();
@@ -193,9 +193,9 @@ public class ExpenseController {
     private static class SplitValidationResult {
         private final List<SplitLine> splits;
         private final BigDecimal sum;
-        private final ResponseEntity<String> error;
+        private final ResponseEntity<Object> error;
 
-        private SplitValidationResult(List<SplitLine> splits, BigDecimal sum, ResponseEntity<String> error) {
+        private SplitValidationResult(List<SplitLine> splits, BigDecimal sum, ResponseEntity<Object> error) {
             this.splits = splits;
             this.sum = sum;
             this.error = error;
@@ -205,7 +205,7 @@ public class ExpenseController {
             return new SplitValidationResult(splits, sum, null);
         }
 
-        static SplitValidationResult error(ResponseEntity<String> error) {
+        static SplitValidationResult error(ResponseEntity<Object> error) {
             return new SplitValidationResult(null, null, error);
         }
 
@@ -213,7 +213,7 @@ public class ExpenseController {
             return error != null;
         }
 
-        ResponseEntity<String> errorResponse() {
+        ResponseEntity<Object> errorResponse() {
             return error;
         }
 
