@@ -3,7 +3,6 @@ package org.ncsu.settleup.expenseservice.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.ncsu.settleup.expenseservice.client.MembershipClient;
 import org.ncsu.settleup.expenseservice.model.Expense;
 import org.ncsu.settleup.expenseservice.model.SplitLine;
