@@ -17,7 +17,7 @@ import static org.mockito.Mockito.*;
  * properties.  A mock {@link ConnectionFactory} is used when creating
  * the {@link RabbitTemplate} to avoid any real AMQP connections.
  */
-public class AmqpConfigTest {
+class AmqpConfigTest {
 
     @Test
     void topicExchange_hasExpectedName() {

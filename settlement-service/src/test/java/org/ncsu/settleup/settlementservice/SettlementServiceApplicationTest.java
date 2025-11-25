@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
  * application entry point and bean methods without starting the full Spring context.
  */
 @ExtendWith(MockitoExtension.class)
-public class SettlementServiceApplicationTest {
+class SettlementServiceApplicationTest {
 
     @Mock
     private RestTemplateBuilder builder;

@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
  * {@link MembershipClient#memberExists(Long, Long)} is exercised to achieve
  * complete coverage of this class.
  */
-public class MembershipClientTest {
+class MembershipClientTest {
 
     private RestTemplate rest;
     private MembershipClient client;

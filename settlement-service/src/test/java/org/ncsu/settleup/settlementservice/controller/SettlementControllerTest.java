@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
  * methods are invoked directly.
  */
 @ExtendWith(MockitoExtension.class)
-public class SettlementControllerTest {
+class SettlementControllerTest {
 
     @Mock
     private SettlementService settlementService;

@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * exception handler method directly and assert that the returned
  * {@link ResponseEntity} has the correct HTTP status code and body.
  */
-public class GlobalExceptionHandlerTest {
+class GlobalExceptionHandlerTest {
 
     @Test
     void handleIllegalArgument_returnsBadRequestWithMessage() {

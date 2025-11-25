@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * returning the same value.  This simple POJO has no additional logic,
  * so covering the constructors and accessors yields full coverage.
  */
-public class TransferTest {
+class TransferTest {
 
     @Test
     void defaultConstructor_leavesAllFieldsNull() {

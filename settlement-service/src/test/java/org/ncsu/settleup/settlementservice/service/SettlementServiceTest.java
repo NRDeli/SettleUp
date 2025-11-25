@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * where necessary.  Collectively with the existing black‑box tests,
  * they should bring coverage of the service class to 100%.
  */
-public class SettlementServiceTest {
+class SettlementServiceTest {
 
     private SettlementService settlementService;
 
