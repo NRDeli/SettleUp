@@ -25,7 +25,7 @@ public class MembershipController {
     private final GroupRepository groupRepository;
     private final MemberRepository memberRepository;
     private final CategoryRepository categoryRepository;
-
+    private static final String GROUP_NOT_FOUND_MESSAGE = "Group not found";
     public MembershipController(GroupRepository groupRepository,
                                 MemberRepository memberRepository,
                                 CategoryRepository categoryRepository) {
@@ -82,7 +82,7 @@ public class MembershipController {
     public GroupEntity updateGroup(@PathVariable Long groupId,
                                    @RequestBody GroupUpdateRequest request) {
         GroupEntity group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group not found"));
+                .orElseThrow(() -> new IllegalArgumentException(GROUP_NOT_FOUND_MESSAGE));
         if (request.name() != null) {
             group.setName(request.name());
         }
@@ -103,7 +103,7 @@ public class MembershipController {
                     groupRepository.delete(g);
                     return ResponseEntity.ok("Group deleted successfully");
                 })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Group not found"));
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(GROUP_NOT_FOUND_MESSAGE));
     }
 
     /**
@@ -138,7 +138,7 @@ public class MembershipController {
     public MemberEntity addMember(@PathVariable Long groupId,
                                   @RequestBody MemberCreateRequest request) {
         GroupEntity group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group not found"));
+                .orElseThrow(() -> new IllegalArgumentException(GROUP_NOT_FOUND_MESSAGE));
         MemberEntity member = new MemberEntity(request.email(), request.role(), group);
         return memberRepository.save(member);
     }
@@ -209,7 +209,7 @@ public class MembershipController {
     public CategoryEntity addCategory(@PathVariable Long groupId,
                                       @RequestBody CategoryCreateRequest request) {
         GroupEntity group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group not found"));
+                .orElseThrow(() -> new IllegalArgumentException(GROUP_NOT_FOUND_MESSAGE));
         CategoryEntity category = new CategoryEntity(request.name(), group);
         return categoryRepository.save(category);
     }
